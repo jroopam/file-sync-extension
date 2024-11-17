@@ -1,0 +1,28 @@
+{
+    "name": "File Syncrinator",
+    "version": "0.1.0",
+    "description": "Synchronize files between local system and website",
+    "manifest_version": 3,
+    "author": "", 
+    "permissions": [
+        "activeTab",
+        "scripting",
+        "tabs"
+    ],
+    "host_permissions": [
+        "https://leetcode.com/problems/*"
+    ],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "action":{
+        "default_popup": "index.html",
+        "default_title": "Synchronize"
+    },
+    "content_scripts": [
+        {
+            "matches": ["https://leetcode.com/problems/*"],
+            "js": ["read-file.js"]
+        }
+    ]
+}
