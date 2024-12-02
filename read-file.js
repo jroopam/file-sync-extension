@@ -1,17 +1,9 @@
-async function startReadingFile() {
-    try {
-        const res = await fetch(chrome.runtime.getURL('index.html'));
-        const content = await res.text();
-        console.log("content", content);
-    } catch (error) {
-        console.log('Error reading file: ', error);
-    }
+function injectScript (src) {
+    const s = document.createElement('script');
+    s.type = 'module';
+    s.src = chrome.runtime.getURL(src);
+    s.onload = () => s.remove();
+    (document.head || document.documentElement).append(s);
 }
 
-(async () => {
-    try {
-        const data = await chrome.runtime.sendMessage({ type: "gimmeHTML", url: "tmp.cpp" });
-    } catch (error) {
-        console.error('Error: ', error);
-    }
-})();
+injectScript('script.js')

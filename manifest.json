@@ -12,17 +12,15 @@
     "host_permissions": [
         "https://leetcode.com/problems/*"
     ],
-    "background": {
-        "service_worker": "background.js"
-    },
-    "action":{
-        "default_popup": "index.html",
-        "default_title": "Synchronize"
-    },
     "content_scripts": [
         {
             "matches": ["https://leetcode.com/problems/*"],
+            "run_at": "document_end",
             "js": ["read-file.js"]
         }
-    ]
+    ],
+    "web_accessible_resources": [{
+        "resources": ["script.js"],
+        "matches": ["<all_urls>"]
+    }]
 }
