@@ -48,28 +48,34 @@ function saveModelContent(contents) {
     editor.focus();
 }
 
-async function initialSave() {
+async function saveContent() {
     let localFileHandle = await get('file');
-    if(!localFileHandle) {
-        localFileHandle = await window.showOpenFilePicker({id: 'saveContent'}); 
-    }
     [fileHandle] = localFileHandle;
-    await set('file', localFileHandle);
+    if(!fileHandle) {
+        return;
+    }
     const initial_save = getModelContent();
     saveToFile(initial_save);
 }
 
-setTimeout(() => {
+async function initialize() {
+    let localFileHandle  = await window.showOpenFilePicker({id: 'saveContent'}); 
+    await set('file', localFileHandle);
+    saveContent();
+}
+
+setTimeout(async () => {
     console.log("Trying to insert button");
     const button = document.createElement("button");
     button.textContent = "Select File";
-    button.onclick = initialSave;
+    button.onclick = initialize;
     if(document.querySelector('.z-nav-1')) {
         document.querySelector('.z-nav-1').appendChild(button);
     } else {
         document.querySelector('nav').appendChild(button);
     }
     console.log("Button Inserted");
+    await saveContent(); //await here so that when the user goes to a new problem, it first writes to the file
 
     const model = getModel();
     model.onDidChangeContent(async () => {
