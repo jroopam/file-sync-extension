@@ -1,64 +1,57 @@
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    (async () => {
-        if (message.type === "gimmeHTML") {
-            const data = await fetch(chrome.runtime.getURL(message.url));
-            const content = await data.text();
-            console.log(content);
-            sendResponse(content);
-            await getPageVar('foo', content);
-        }
-    })();
+let last_active_tab_id = null;
 
-    // this is needed for async listeners be able to use `sendResponse` function
-    return true;
+chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+    if(tabs && tabs.length) 
+        last_active_tab_id = tabs[0].id;
 });
 
+chrome.tabs.onActivated.addListener(async (activeInfo) => {
+    const current_tab_id = activeInfo.tabId;
 
-async function getPageVar(name, code, tabId) {
-    console.log("Hi")
-    const [{result}] = await chrome.scripting.executeScript({
-        func: (name, code) => {
-            console.log("Hello")
-            setTimeout(() => {
-                console.log(monaco)
-                if(monaco) {
-                    const editors = monaco.editor.getEditors();
-                    let editor = null;
-                    if(editors && editors.length) {
-                        editor = editors[0];
-                    }
-                    if (editor) {
-                        const model = editor.getModel();
-                        if (model) {
-                            const fullRange = model.getFullModelRange();
-                            console.log(code)
-                            const code_to_insert = JSON.stringify(code);
-                            editor.executeEdits('extension', [{
-                                range: fullRange,
-                                text: code,
-                                forceMoveMarkers: true
-                            }]);
-                            editor.pushUndoStop();
-                            editor.focus();
-                        }
-                    }
+    try {
+        const tab = await chrome.tabs.get(current_tab_id);
+        // Skip chrome:// or brave:// URLs
+        if (tab.url?.startsWith("chrome://") || tab.url?.startsWith("brave://")) {
+            return;
+        }
+    } catch (error) { }
 
+    try {
+        if (last_active_tab_id) {
+            await chrome.scripting.executeScript({
+                func: async () => {
+                    if (typeof read_file_interval !== "undefined") {
+                        clearInterval(read_file_interval);
+                        // console.log("Interval Cleared", getModelContent());
+                    }
+                },
+                target: {
+                    tabId: last_active_tab_id,
+                },
+                world: 'MAIN',
+            });
+        }
+    } catch (error) { }
+
+    if (current_tab_id) {
+        await chrome.scripting.executeScript({
+            func: async () => {
+                writing = true;
+                // console.log("Before saving content", getModelContent());
+                if (typeof read_file_interval !== "undefined") { // Handle the case where the user reloads -> switches tab and then go back to the original tab again
+                    clearInterval(read_file_interval);
+                    // console.log("Interval Cleared", getModelContent());
                 }
-            }, 5000)
-            window[name]
-            console.log("Bye]")
-        },
-        args: [name, code],
-        target: {
-            tabId: (await chrome.tabs.query({active: true, currentWindow: true}))[0].id
-        },
-        world: 'MAIN',
-    });
-    console.log(result);
-    return result;
-}
+                await saveContent(); // Ensure content is saved after clearing interval
+                keepReadingFileForChanges(1);
+            },
+            target: {
+                tabId: current_tab_id,
+            },
+            world: 'MAIN',
+        });
+    }
 
-//(async () => {
-//    const v = await getPageVar('foo');
-//    console.log(v);
-//})();
+    last_active_tab_id = current_tab_id;
+});
+// What happens when both/all the tabs are loading? Maybe we need a central place to handle file writing but permissions don't allow it.

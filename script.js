@@ -1,14 +1,19 @@
 import { get, set } from 'https://unpkg.com/idb-keyval@5.0.2/dist/esm/index.js';
 let fileHandle;
 let content = '';
-let writing = false;
+window.writing = false;
+window.read_file_interval = null;
 
 async function saveToFile(contents) {
-    writing = true;
-    const writable = await fileHandle.createWritable();
-    await writable.write(contents);
-    await writable.close();
-    writing = false;
+    try{
+        writing = true;
+        const writable = await fileHandle.createWritable();
+        await writable.write(contents);
+        await writable.close();
+        writing = false;
+    } catch (error) {
+        console.log("Error:", error);
+    }
 }
 
 async function readFile() {
@@ -21,9 +26,10 @@ function getModel() {
     if(monaco && monaco.editor && monaco.editor.getEditors().length) {
         return monaco.editor.getEditors()[0].getModel();
     }
+    return null;
 }
 
-function getModelContent() {
+window.getModelContent = function () {
     const model = getModel();
     return model.getValue();
 }
@@ -48,7 +54,7 @@ function saveModelContent(contents) {
     editor.focus();
 }
 
-async function saveContent() {
+window.saveContent = async function () {
     let localFileHandle = await get('file');
     [fileHandle] = localFileHandle;
     if(!fileHandle) {
@@ -64,7 +70,32 @@ async function initialize() {
     saveContent();
 }
 
-setTimeout(async () => {
+function waitForModel() {
+    return new Promise((resolve) => {
+        const wait_for_model = setInterval(() => {
+            const model = getModel();
+            if (model) {
+                clearInterval(wait_for_model);
+                resolve(model); // Resolve the promise when the model is available
+            }
+        }, 200);
+    });
+}
+
+window.keepReadingFileForChanges = function (loc) {
+    read_file_interval = setInterval(async () => {
+        if(fileHandle && !writing) {
+            const file_content = await readFile();
+            //console.log("Location", loc, writing, file_content);
+            if(content != file_content) {
+                saveModelContent(file_content);
+                content = file_content;
+            }
+        }
+    }, 1000);
+}
+
+window.addEventListener('load', async () => {
     console.log("Trying to insert button");
     const button = document.createElement("button");
     button.textContent = "Select File";
@@ -75,6 +106,9 @@ setTimeout(async () => {
         document.querySelector('nav').appendChild(button);
     }
     console.log("Button Inserted");
+
+    await waitForModel();
+
     await saveContent(); //await here so that when the user goes to a new problem, it first writes to the file
 
     const model = getModel();
@@ -84,14 +118,6 @@ setTimeout(async () => {
             await saveToFile(contents);
         content = contents;
     })
-
-    setInterval(async () => {
-        if(fileHandle && !writing) {
-            const file_content = await readFile();
-            if(content != file_content) {
-                saveModelContent(file_content);
-                content = file_content;
-            }
-        }
-    }, 1000);
-}, 5000);
+    
+    keepReadingFileForChanges(0);
+});
