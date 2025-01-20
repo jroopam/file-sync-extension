@@ -85,7 +85,8 @@ function waitForModel() {
 window.keepReadingFileForChanges = function (loc) {
     read_file_interval = setInterval(async () => {
         if(fileHandle && !writing) {
-            const file_content = await readFile();
+            let file_content = await readFile();
+            file_content = file_content.trim();
             //console.log("Location", loc, writing, file_content);
             if(content != file_content) {
                 content = file_content;
