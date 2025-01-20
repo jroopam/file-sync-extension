@@ -88,8 +88,8 @@ window.keepReadingFileForChanges = function (loc) {
             const file_content = await readFile();
             //console.log("Location", loc, writing, file_content);
             if(content != file_content) {
-                saveModelContent(file_content);
                 content = file_content;
+                saveModelContent(file_content);
             }
         }
     }, 1000);
