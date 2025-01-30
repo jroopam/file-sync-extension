@@ -22,7 +22,7 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
                 func: async () => {
                     if (typeof read_file_interval !== "undefined") {
                         clearInterval(read_file_interval);
-                        // console.log("Interval Cleared", getModelContent());
+                        //console.log("Interval Cleared", getModelContent());
                     }
                 },
                 target: {
@@ -32,6 +32,27 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
             });
         }
     } catch (error) { }
+
+    try {
+        let tabs = await chrome.tabs.query({});
+
+        let inactiveTabs = tabs.filter(tab => !tab.active);
+
+        for (let tab of inactiveTabs) {
+            await chrome.scripting.executeScript({
+                func: async () => {
+                    if (typeof read_file_interval !== "undefined") {
+                        clearInterval(read_file_interval);
+                         //console.log("Interval Cleared 2", getModelContent());
+                    }
+                },
+                target: { tabId: tab.id },
+                world: 'MAIN',
+            });
+        }
+    } catch (error) {
+        console.error(error);
+    }
 
     if (current_tab_id) {
         await chrome.scripting.executeScript({

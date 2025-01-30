@@ -108,6 +108,13 @@ window.addEventListener('load', async () => {
     }
     console.log("Button Inserted");
 
+    window.addEventListener("visibilitychange", () => {
+        if(document.visibilityState !== "visible") 
+            return;
+    })
+    if(document.hidden) 
+        return;
+
     await waitForModel();
 
     await saveContent(); //await here so that when the user goes to a new problem, it first writes to the file
